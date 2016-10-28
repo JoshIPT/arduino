@@ -1,0 +1,48 @@
+rfidtimesheet v1.0 -- API Reference
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+Upon power on (or port open), the Arduino will begin to boot
+After 2-3 seconds, the boot process will be complete and the system will send a 
+message indication it has booted. It is then ready for scans.
+
+Upon receiving a scan, it will send a message with the card ID.
+
+Any messages it receives it will echo back to you with the debug prefix.
+
+_______________________________________________________________________________
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+The OUTPUT Messaging Reference is as follows:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+	WORD 1		WORD 2
+	¯¯¯¯¯¯          ¯¯¯¯¯¯
+	BOOT		Version information
+	SCAN		Card ID
+	DEBUG		Echo'd back message
+
+
+BOOT: This is used to indicate that the system has completed its bootup and is
+      ready to start scanning. You can also get the version information for the
+      onboard software by reading the remaining text of the message
+
+	eg:  BOOT rfidtimesheet/1.0 -- boot up complete
+
+SCAN: This will report that a scan has taken place and the card identifier
+      that was scanned.
+
+	eg:  SCAN 12-34-56-78
+
+DEBUG: This will prefix any message you send to it.
+
+	eg: If you sent it "Hello", it would echo:  DEBUG Hello
+______________________________________________________________________________
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+The device also responds to messages that we send it.
+
+
+The INPUT Messaging Reference is as follows:
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+	TONEUP		- This will sound the incrementing tone (clock in)
+	TONEDOWN 	- This will sound the decrementing tone (clock out)
+	TONEERR		- This will sound the error tone
+
