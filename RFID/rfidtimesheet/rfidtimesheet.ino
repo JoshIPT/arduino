@@ -1,18 +1,7 @@
 /*
- * MFRC522 - Library to use ARDUINO RFID MODULE KIT 13.56 MHZ WITH TAGS SPI W AND R BY COOQROBOT.
- * The library file MFRC522.h has a wealth of useful info. Please read it.
- * The functions are documented in MFRC522.cpp.
+ * BIRDBROODER Arduino input/output module
+ * josh@finlay.id.au
  *
- * Based on code Dr.Leong   ( WWW.B2CQSHOP.COM )
- * Created by Miguel Balboa (circuitito.com), Jan, 2012.
- * Rewritten by Søren Thing Andersen (access.thing.dk), fall of 2013 (Translation to English, refactored, comments, anti collision, cascade levels.)
- * Released into the public domain.
- *
- * Sample program showing how to read data from a PICC using a MFRC522 reader on the Arduino SPI interface.
- *----------------------------------------------------------------------------- empty_skull 
- * Aggiunti pin per arduino Mega
- * add pin configuration for arduino mega
- * http://mac86project.altervista.org/
  ----------------------------------------------------------------------------- Nicola Coppola
  * Pin layout should be as follows:
  * Signal     Pin              Pin               Pin
@@ -35,54 +24,121 @@
 #define RST_PIN 9
 #define speakerOut 3
 MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance.
-int melody[] = {
+/*int melody[] = {
   NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4
+};*/
+int melody[] = {
+  NOTE_B4, NOTE_C6, NOTE_G6, NOTE_CS7
 };
+
+int errormel[] = {
+  NOTE_D4, NOTE_D4, NOTE_D4
+};
+
 int noteDurations[] = {
-  4, 8, 8, 4, 4, 4, 4, 4
+  8, 8, 8, 8
 };
+
+int errDurations[] {
+  3, 3, 3, 3
+};
+bool dataReady = false;
+String dataRcvd = "";
+bool gotReply = true;
 
 void setup() {
   Serial.begin(9600); // Initialize serial communications with the PC
   SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init(); // Init MFRC522 card
   pinMode(speakerOut, OUTPUT);
-  Serial.println("Scan PICC to see UID and type...");
+  Serial.println("BOOT rfidTimesheet/1.0 -- ready");
 }
 
 void loop() {
-  // Look for new cards
-  if ( ! mfrc522.PICC_IsNewCardPresent()) {
-    return;
-  }
+  serialEvent();
 
-  // Select one of the cards
-  if ( ! mfrc522.PICC_ReadCardSerial()) {
-    return;
-  }
-
-  // Dump debug info about the card. PICC_HaltA() is automatically called.
-  Serial.print("Got scan! Card ID: ");
+  if (gotReply) {
+    if (!mfrc522.PICC_IsNewCardPresent()) {
+      return;
+    }
+    if (!mfrc522.PICC_ReadCardSerial()) {
+      return;
+    }
   
-  MFRC522::Uid cuid;
   
-  cuid = mfrc522.uid;
-  for (byte i = 0; i < cuid.size; i++) {
-    if(cuid.uidByte[i] < 0x10)
-      Serial.print(F(" 0"));
-    else
-      Serial.print(F(" "));
-    Serial.print(cuid.uidByte[i], HEX);
+    gotReply = false;
+  
+    Serial.print("SCAN ");
+    
+    MFRC522::Uid cuid;
+  
+    bool firstDash = true;
+    cuid = mfrc522.uid;
+    for (byte i = 0; i < cuid.size; i++) {
+      if(cuid.uidByte[i] < 0x10)
+        Serial.print(F("0"));
+      else {
+        if (firstDash) {
+          firstDash = false;
+        }
+        else Serial.print(F("-"));
+      }
+      Serial.print(cuid.uidByte[i], HEX);
+    }
+    Serial.println();
+    delay(1000);
   }
-  Serial.println();
 
-  for (int thisNote = 0; thisNote < 8; thisNote++) {
-    int noteDuration = 1000 / noteDurations[thisNote];
-    tone(speakerOut, melody[thisNote], noteDuration);
-    int pauseBetweenNotes = noteDuration * 1.30;
-    delay(pauseBetweenNotes);
-    noTone(8);
+  if (dataReady) {
+    gotReply = true;
+    if (dataRcvd == "TONEUP\n") { toneUp(); }
+    if (dataRcvd == "TONEDOWN\n") { toneDown(); }
+    if (dataRcvd == "TONEERR\n") { toneErr(); }
+    Serial.print("DEBUG ");
+    Serial.print(dataRcvd);
+    dataRcvd = "";
+    dataReady = false;
   }
+    
+    serialEvent();
+}
 
-  delay(1000);
+void serialEvent() {
+  while (Serial.available()) {
+    char inChar = (char)Serial.read();
+    dataRcvd += inChar;
+    if (inChar == '\n') {
+      dataReady = true;
+    }
+  }
+}
+
+void toneUp() {
+    for (int thisNote = 0; thisNote < 4; thisNote++) {
+      int noteDuration = 1000 / noteDurations[thisNote];
+      tone(speakerOut, melody[thisNote], noteDuration);
+      int pauseBetweenNotes = noteDuration * 1;
+      delay(pauseBetweenNotes);
+      noTone(8);
+    }
+}
+
+void toneDown() {
+    for (int thisNote = 3; thisNote > -1; thisNote--) {
+      int noteDuration = 1000 / noteDurations[thisNote];
+      tone(speakerOut, melody[thisNote], noteDuration);
+      int pauseBetweenNotes = noteDuration * 1;
+      delay(pauseBetweenNotes);
+      noTone(8);
+    }
+}
+
+void toneErr() {
+    for (int thisNote = 0; thisNote < 3; thisNote++) {
+      int noteDuration = 1000 / errDurations[thisNote];
+      tone(speakerOut, errormel[thisNote], noteDuration);
+      int pauseBetweenNotes = noteDuration * 1.3;
+      delay(pauseBetweenNotes);
+      noTone(8);
+    }
 }
